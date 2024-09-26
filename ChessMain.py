@@ -21,11 +21,30 @@ def main():
     gs = ChessEngine.GameState()  # Keep your GameState logic
     load_images()  # Call load_images to load the images
     running = True
+    sqSelected = () #no square is selected, keep track of the last click of the user (tuple: (row, col))
+    playerClicks = [] #keep track of the player clicks (two tuples: [(6, 4), (4, 4)])
     while running:
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
-        
+            elif e.type == p.MOUSEBUTTONDOWN:
+                location = p.mouse.get_pos()
+                col = location[0] // SQ_SIZE
+                row = location[1] // SQ_SIZE
+                if sqSelected == (row, col): #the user clciked the same square twice
+                    sqSelected = () #deselect
+                    playerClicks = [] #clear player clicks
+                else:
+                    sqSelected = (row, col)
+                    playerClicks.append(sqSelected) #append for both 1st and 2nd clicks
+                if len(playerClicks) == 2: #after 2nd click
+                    move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
+                    print(move.getChessNotation())
+                    gs.makeMove(move)
+                    sqSelected = ()
+                    playerClicks = []
+
+               
         drawGameState(screen, gs)  # Call to draw the game state
         clock.tick(MAX_FPS)
         p.display.flip()
@@ -37,7 +56,7 @@ def drawGameState(screen, gs):
 
 # Draw the squares on the board
 def drawBoard(screen):
-    colors = [p.Color("white"), p.Color("gray")]
+    colors = [p.Color("green"), p.Color("white")]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[((r + c) % 2)]
