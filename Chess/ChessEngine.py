@@ -20,7 +20,9 @@ class GameState():
             ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
         ]
+        #make all functions
 
+        self.moveFunctions = {'p':self.getPawnMoves, 'R':self.getRookMoves, 'Q':self.getQueenMoves, 'B':self.getBishopMoves, 'N':self.getNightMoves, 'K':self.getKingMoves}
         self.whiteToMove = True
         self.moveLog =[]
     
@@ -53,24 +55,131 @@ class GameState():
     All moves without considering checks
     '''
     def getAllPossibleMoves(self):
-        moves = [Move((6, 4), (4, 4), self.board)]
-        for r in range(len(self.board)): #nuber of rows
-            for c in range(len(self.board[r])): #number of columns in given row
+        moves = []
+        for r in range(len(self.board)):  # number of rows
+            for c in range(len(self.board[r])):  # number of columns in given row
                 turn = self.board[r][c][0]
-                if (turn == 'w' and self.whiteToMove) and (turn =='b' and not self.whiteToMove):
+                if (turn == 'w' and self.whiteToMove) or (turn == 'b' and not self.whiteToMove):
                     piece = self.board[r][c][1]
+                    # Call the appropriate move function based on the piece
                     if piece == 'p':
                         self.getPawnMoves(r, c, moves)
                     elif piece == 'R':
                         self.getRookMoves(r, c, moves)
+                    elif piece == 'B':
+                        self.getBishopMoves(r, c, moves)
+                    elif piece == 'N':
+                        self.getNightMoves(r, c, moves)
+                    elif piece == 'Q':
+                        self.getQueenMoves(r, c, moves)
+                    elif piece == 'K':
+                        self.getKingMoves(r, c, moves)
         return moves
+
     
     def getPawnMoves(self, r, c, moves):
-        pass
-
+        if self.whiteToMove:
+            if self.board[r - 1][c] == "--":
+                moves.append(Move((r, c), (r -1, c), self.board))
+                if r == 6 and self.board[r-2][c] == "--":
+                    moves.append(Move((r, c), (r-2, c), self.board))
+            
+            if c-1 >= 0:
+                if self.board[r - 1][c - 1][0] == 'b':
+                    moves.append(Move((r, c), (r-1, c-1), self.board))
+            
+            if c+1 <= 7:
+                if self.board[r - 1][c + 1][0] == 'b':
+                    moves.append(Move((r, c), (r-1, c+1), self.board))
+            
+        if not self.whiteToMove:
+            if self.board[r+1][c] == "--":
+                moves.append(Move((r, c), (r +1, c), self.board))
+                if r == 1 and self.board[r+2][c] == "--":
+                    moves.append(Move((r, c), (r+2, c), self.board))
+            
+            if c-1 >= 0:
+                if self.board[r + 1][c - 1][0] == 'w':
+                    moves.append(Move((r, c), (r+1, c-1), self.board))
+            
+            if c+1 <= 7:
+                if self.board[r + 1][c + 1][0] == 'w':
+                    moves.append(Move((r, c), (r+1, c+1), self.board))
+        
     def getRookMoves(self, r, c, moves):
-        pass
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+        enemy_color = 'b' if self.whiteToMove else 'w'
+        for d in directions:
+            for i in range(1, 8):  # Max distance is 7 squares
+                end_row = r + d[0] * i
+                end_col = c + d[1] * i
+                if 0 <= end_row <= 7 and 0 <= end_col <= 7:
+                    end_piece = self.board[end_row][end_col]
+                    if end_piece == "--":  # Empty square
+                        moves.append(Move((r, c), (end_row, end_col), self.board))
+                    elif end_piece[0] == enemy_color:  # Enemy piece
+                        moves.append(Move((r, c), (end_row, end_col), self.board))
+                        break
+                    else:  # Friendly piece
+                        break
+                else:
+                    break
 
+    def getQueenMoves(self, r, c, moves):
+        self.getRookMoves(r, c, moves)  # Rook-like moves
+        self.getBishopMoves(r, c, moves)  # Bishop-like moves
+
+    def getBishopMoves(self, r, c, moves):
+        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Diagonals
+        enemy_color = 'b' if self.whiteToMove else 'w'
+
+        for d in directions:
+            for i in range(1, 8):  # Max distance is 7 squares
+                end_row = r + d[0] * i
+                end_col = c + d[1] * i
+                if 0 <= end_row <= 7 and 0 <= end_col <= 7:
+                    end_piece = self.board[end_row][end_col]
+                    if end_piece == "--":  # Empty square
+                        moves.append(Move((r, c), (end_row, end_col), self.board))
+                    elif end_piece[0] == enemy_color:  # Enemy piece
+                        moves.append(Move((r, c), (end_row, end_col), self.board))
+                        break
+                    else:  # Friendly piece
+                        break
+                else:
+                    break
+
+
+    def getNightMoves(self, r, c, moves):
+        knight_moves = [
+            (-2, -1), (-2, 1), (2, -1), (2, 1), 
+            (-1, -2), (-1, 2), (1, -2), (1, 2)
+        ]
+        ally_color = 'w' if self.whiteToMove else 'b'
+        
+        for m in knight_moves:
+            end_row = r + m[0]
+            end_col = c + m[1]
+            if 0 <= end_row <= 7 and 0 <= end_col <= 7:
+                end_piece = self.board[end_row][end_col]
+                if end_piece == "--" or end_piece[0] != ally_color:  # Empty or enemy
+                    moves.append(Move((r, c), (end_row, end_col), self.board))
+
+
+    def getKingMoves(self, r, c, moves):
+        king_moves = [
+            (-1, 0), (1, 0), (0, -1), (0, 1), 
+            (-1, -1), (-1, 1), (1, -1), (1, 1)
+        ]
+        ally_color = 'w' if self.whiteToMove else 'b'
+
+        for m in king_moves:
+            end_row = r + m[0]
+            end_col = c + m[1]
+            if 0 <= end_row <= 7 and 0 <= end_col <= 7:
+                end_piece = self.board[end_row][end_col]
+                if end_piece == "--" or end_piece[0] != ally_color:  # Empty or enemy
+                    moves.append(Move((r, c), (end_row, end_col), self.board))
 
 
 class Move():
